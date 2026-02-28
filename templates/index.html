@@ -3,27 +3,91 @@
 <head>
     <title>Realtime Chat</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: url("https://images.unsplash.com/photo-1506744038136-46273834b3fb") no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .chat-container {
+            background: rgba(255, 255, 255, 0.9);
+            width: 400px;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        #messages {
+            list-style: none;
+            padding: 0;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        #messages li {
+            margin-bottom: 8px;
+        }
+
+        input {
+            padding: 8px;
+            width: 70%;
+        }
+
+        button {
+            padding: 8px;
+            width: 25%;
+        }
+    </style>
 </head>
 <body>
+
+<div class="chat-container">
     <h2>Chat Room</h2>
+
+    <input id="username" placeholder="Enter your name" />
+    <br><br>
+
+    <ul id="messages"></ul>
 
     <input id="message" autocomplete="off" placeholder="Type message"/>
     <button onclick="sendMessage()">Send</button>
-
-    <ul id="messages"></ul>
+</div>
 
 <script>
     var socket = io();
 
     function sendMessage() {
-        var msg = document.getElementById("message").value;
-        socket.send(msg);
+        var username = document.getElementById("username").value;
+        var message = document.getElementById("message").value;
+
+        if (username === "" || message === "") {
+            return;
+        }
+
+        socket.emit('send_message', {
+            user: username,
+            msg: message
+        });
+
         document.getElementById("message").value = "";
     }
 
-    socket.on('message', function(msg) {
+    socket.on('receive_message', function(data) {
         var li = document.createElement("li");
-        li.innerText = msg;
+        li.innerHTML = "<strong>" + data.user + ":</strong> " + data.msg;
         document.getElementById("messages").appendChild(li);
     });
 </script>
