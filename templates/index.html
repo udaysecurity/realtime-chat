@@ -7,8 +7,7 @@
     <style>
         body {
             margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
+            font-family: Arial;
             background: url("https://images.unsplash.com/photo-1506744038136-46273834b3fb") no-repeat center center fixed;
             background-size: cover;
             display: flex;
@@ -18,15 +17,23 @@
         }
 
         .chat-container {
-            background: rgba(255, 255, 255, 0.9);
-            width: 400px;
-            padding: 20px;
+            display: flex;
+            width: 700px;
+            background: rgba(255,255,255,0.9);
             border-radius: 15px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+            overflow: hidden;
         }
 
-        h2 {
-            text-align: center;
+        .users {
+            width: 200px;
+            background: #f4f4f4;
+            padding: 10px;
+            border-right: 1px solid #ccc;
+        }
+
+        .chat-box {
+            flex: 1;
+            padding: 15px;
         }
 
         #messages {
@@ -34,52 +41,58 @@
             padding: 0;
             height: 300px;
             overflow-y: auto;
-            margin-bottom: 10px;
         }
 
         #messages li {
             margin-bottom: 8px;
         }
 
-        input {
-            padding: 8px;
-            width: 70%;
-        }
-
-        button {
-            padding: 8px;
-            width: 25%;
+        .system {
+            color: gray;
+            font-style: italic;
         }
     </style>
 </head>
 <body>
 
 <div class="chat-container">
-    <h2>Chat Room</h2>
 
-    <input id="username" placeholder="Enter your name" />
-    <br><br>
+    <div class="users">
+        <h3>Online</h3>
+        <ul id="userList"></ul>
+    </div>
 
-    <ul id="messages"></ul>
+    <div class="chat-box">
+        <h2>Chat Room</h2>
 
-    <input id="message" autocomplete="off" placeholder="Type message"/>
-    <button onclick="sendMessage()">Send</button>
+        <input id="username" placeholder="Enter your name" />
+        <button onclick="joinChat()">Join</button>
+
+        <ul id="messages"></ul>
+
+        <input id="message" placeholder="Type message"/>
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
 </div>
 
 <script>
     var socket = io();
+    var username = "";
+
+    function joinChat() {
+        username = document.getElementById("username").value;
+        if (username === "") return;
+        socket.emit('join', username);
+    }
 
     function sendMessage() {
-        var username = document.getElementById("username").value;
-        var message = document.getElementById("message").value;
-
-        if (username === "" || message === "") {
-            return;
-        }
+        var msg = document.getElementById("message").value;
+        if (msg === "" || username === "") return;
 
         socket.emit('send_message', {
             user: username,
-            msg: message
+            msg: msg
         });
 
         document.getElementById("message").value = "";
@@ -87,9 +100,32 @@
 
     socket.on('receive_message', function(data) {
         var li = document.createElement("li");
-        li.innerHTML = "<strong>" + data.user + ":</strong> " + data.msg;
+        li.innerHTML = "<strong>" + data.user + "</strong> [" + data.time + "]: " + data.msg;
         document.getElementById("messages").appendChild(li);
     });
+
+    socket.on('system_message', function(msg) {
+        var li = document.createElement("li");
+        li.className = "system";
+        li.innerText = msg;
+        document.getElementById("messages").appendChild(li);
+    });
+
+    socket.on('user_list', function(users) {
+        var ul = document.getElementById("userList");
+        ul.innerHTML = "";
+        users.forEach(function(user) {
+            var li = document.createElement("li");
+            li.innerText = user;
+            ul.appendChild(li);
+        });
+    });
+
+    window.onbeforeunload = function() {
+        if (username !== "") {
+            socket.emit('leave', username);
+        }
+    };
 </script>
 
 </body>
